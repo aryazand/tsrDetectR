@@ -17,3 +17,6 @@ Depends:
     GenomicRanges,
     R (>= 3.5)
 LazyData: true
+Imports: 
+    BiocGenerics,
+    checkmate
