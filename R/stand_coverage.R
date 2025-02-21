@@ -1,6 +1,18 @@
 
-# TODO:
-# - add description
+#' Calculate strand specific coverage
+#'
+#' @description
+#' `strand_coverage` takes a GRanges object and returns a list of two Rle objects, the coverage on the positive strand and the coverage on the negative strand.
+#'
+#' @param x Input GRanges object. Each interval must have either `+` or `-` assigned to its strand property
+#'
+#' @returns A list of two Rle objects, the coverage on the positive strand and the coverage on the negative strand.
+#'
+#' @import checkmate
+#' @import BiocGenerics
+#' @import GenomicRanges
+#'
+#' @export
 strand_coverage <- function(x) {
 
   # Check input parameters -----------
