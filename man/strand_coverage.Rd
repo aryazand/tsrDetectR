@@ -15,3 +15,9 @@ A list of two Rle objects, the coverage on the positive strand and the coverage 
 \description{
 \code{strand_coverage} takes a GRanges object and returns a list of two Rle objects, the coverage on the positive strand and the coverage on the negative strand.
 }
+\examples{
+# load a sample GRanges objects
+cmv_proseq_sample
+
+strand_coverage(cmv_proseq_sample)
+}

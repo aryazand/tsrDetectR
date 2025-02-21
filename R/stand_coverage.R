@@ -13,6 +13,11 @@
 #' @import GenomicRanges
 #'
 #' @export
+#' @examples
+#' # load a sample GRanges objects
+#' cmv_proseq_sample
+#'
+#' strand_coverage(cmv_proseq_sample)
 strand_coverage <- function(x) {
 
   # Check input parameters -----------
