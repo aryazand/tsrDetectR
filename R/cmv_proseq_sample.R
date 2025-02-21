@@ -6,4 +6,5 @@
 #' A GRanges objects with 7876 fragments on the CMV genome (Genbank KF297339.1)
 #'
 #' @source derived from NCBI's SRA data SRR16301852
+#' @import GenomicRanges
 "cmv_proseq_sample"
