@@ -1,0 +1,93 @@
+---
+title: "20250304-implementing-TSRFinder-algorithm-in-R"
+author: "Arya Zandvakili"
+format: html
+editor: visual
+---
+
+The `S4vectors` package contains helper functions for applying a sliding window functions over Rle objects:
+
+-   `runmean`: mean of window
+
+-   `runsum`: sum of window
+
+-   `runmed`: median of window
+
+-   `runwtsum`: weighted sum
+
+-   `runq`:ith smallest value in the window
+
+-   `aggregate`**:** apply an arbitrary function to the window
+
+The `run*` functions are more efficient than applying the same functions by `aggregate`
+
+## TSRFinder 
+
+-   TSRFinderM1 scores windows of size *w* by sum of 5' ends within window
+
+-   TSRFinderM2 scores windows of size *w* by max of 5' ends within window. Keep windows only if the center is at the max and it doesn't overlap with with a better scoring window
+
+```{r}
+library(tidyverse)
+library(S4Vectors)
+
+test.cov <- strand_coverage(cmv_proseq_sample)
+test.cov1 <- test.cov[[1]][[1]]
+
+w = 21
+wb = 501
+window.mean = runmean(test.cov1, k = w, endrule = "constant")
+window.max = runq(test.cov1, k=w, i = w, endrule = "constant")
+window.sum = runsum(test.cov1, k=w, endrule = "constant")
+window.bg = runmed(test.cov1, k = wb, endrule = "constant")
+
+start_buffer = Rle(rep(NA,ceiling((w-1)/2)))
+end_buffer = Rle(rep(NA,floor((w-1)/2)))
+
+x <- tibble(
+  pos = seq_along(test.cov1),
+  coverage = as.vector(test.cov1),
+  window.mean = as.vector(window.mean),
+  window.sum = as.vector(window.sum),
+  window.max = as.vector(window.max),
+  window.bg = as.vector(window.bg)
+)
+
+# Maximum score of overlapping windows 
+w2 = (w-1)*2 + 1
+x$overlapmax = runq(test.cov1, k=w2, i = w2, endrule = "constant") |> as.vector()
+
+# Identify windows centered at the maxTSS
+x <- x |> mutate(tsr.maxtss = ((coverage == overlapmax) & (coverage > window.bg)))
+x <- x |> mutate(tsr.score = replace(tsr.maxtss*window.max, tsr.maxtss == FALSE, NA))
+
+# Identify positions within a tsr
+half_window = (w-1)/2
+x$in.tsr <- x$pos %in% (map(x$pos[x$tsr.maxtss], ~seq(.x-half_window, .x+half_window))  |> unlist() |> unique())
+
+# give each tsr an ID
+tsr.runs <- Rle(x$in.tsr)
+tsr.ids <- cumsum(runValue(tsr.runs))*runValue(tsr.runs) 
+tsr.ids <- replace(tsr.ids, tsr.ids == 0, NA)
+runValue(tsr.runs) <- tsr.ids
+x$tsr.ids <- as.vector(tsr.runs)
+
+tsrs <- x |>
+  group_by(tsr.ids) |> 
+  summarise(start = min(pos), 
+            end = max(pos), 
+            maxtss = max(coverage),
+            maxpos = list(coverage[coverage == max(coverage)])) |> 
+  ungroup() |> 
+  filter(!is.na(tsr.ids))
+
+x |> 
+  filter(pos %in% 5000:6000) |> 
+  ggplot() +
+    geom_line(aes(pos, coverage), color = "black") + 
+    geom_line(aes(pos, window.bg), color = "red") + 
+    geom_rect(aes(xmin = start, xmax = end, ymin = 0, ymax = maxtss), 
+             fill = "blue", alpha = 0.3, 
+             data = tsrs |> filter(start %in% 5000:6000))
+
+```
