@@ -23,9 +23,9 @@ The `run*` functions are more efficient than applying the same functions by `agg
 
 ## TSRFinder
 
--   TSRFinderM1 scores windows of size *w* by sum of 5' ends within window
+-   TSRFinderM1 selects windows of size *w* by a threshold of sum of 5' ends within window. Keeps windows only if they don't overlap with a better scoring window.
 
--   TSRFinderM2 scores windows of size *w* by max of 5' ends within window. Keep windows only if the center is at the max and it doesn't overlap with with a better scoring window
+-   TSRFinderM2 selects windows of size *w* by a threshold of max of 5' ends within window. Keep windows only if the center is at the max and it doesn't overlap with with a better scoring window
 
 ```{r}
 library(tidyverse)
@@ -41,8 +41,9 @@ window.max = runq(test.cov1, k=w, i = w, endrule = "constant")
 window.sum = runsum(test.cov1, k=w, endrule = "constant")
 window.bg = runmed(test.cov1, k = wb, endrule = "constant")
 
-start_buffer = Rle(rep(NA,ceiling((w-1)/2)))
-end_buffer = Rle(rep(NA,floor((w-1)/2)))
+w2 = (w-1)*2 + 1
+overlap.max = runq(test.cov1, k=w2, i = w2, endrule = "constant")
+overlap.sum = runq(window.sum, k=w2, i = w2, endrule = "constant")
 
 x <- tibble(
   pos = seq_along(test.cov1),
@@ -50,16 +51,17 @@ x <- tibble(
   window.mean = as.vector(window.mean),
   window.sum = as.vector(window.sum),
   window.max = as.vector(window.max),
-  window.bg = as.vector(window.bg)
+  window.bg = as.vector(window.bg),
+  overlap.max = as.vector(overlap.max),
+  overlap.sum = as.vector(overlap.sum)
 )
 
-# Maximum score of overlapping windows 
-w2 = (w-1)*2 + 1
-x$overlapmax = runq(test.cov1, k=w2, i = w2, endrule = "constant") |> as.vector()
-
-# Identify windows centered at the maxTSS
-x <- x |> mutate(tsr.maxtss = ((coverage == overlapmax) & (coverage > window.bg)))
+# Identify MAXTSS
+x <- x |> mutate(tsr.maxtss = ((coverage == overlap.max) & (coverage > window.bg)))
 x <- x |> mutate(tsr.score = replace(tsr.maxtss*window.max, tsr.maxtss == FALSE, NA))
+
+# Identify SUMTSS
+x <- x |> mutate(tsr.sumtss = ((window.sum >= overlap.sum) & (coverage > window.bg)))
 
 # Identify positions within a tsr
 half_window = (w-1)/2
