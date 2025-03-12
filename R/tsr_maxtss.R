@@ -21,23 +21,25 @@ tsr_maxtss <- function(x, w, background = 501, threshold = 0) {
   threshold.rle = S4Vectors::Rle(values = threshold, lengths = length(x))
 
   # Calculate background value
-  background.rle = Rle(stats::runmed(x, k = background, endrule = "constant"))
+  background.rle = S4Vectors::Rle(stats::runmed(x, k = background, endrule = "constant"))
 
   # Calculate max including overlapping window
   w2 = (w-1)*2 + 1
   overlap.max = S4Vectors::runq(x, k=w2, i = w2, endrule = "constant")
 
   # Create a IRanges of the maxtss TSRs
-  maxtss.pos <- which(window.max >= overlap.max &
-                      window.max > threshold.rle &
-                      window.max > background.rle)
+  maxtss.pos <- which(x == overlap.max &
+                      x > threshold.rle &
+                      x > background.rle)
 
   maxtss <- IRanges::IRanges(
     start = maxtss.pos,
-    width = 20,
-    score = as.vector(window.max)[maxtss.pos]
+    width = 1,
+    score = as.vector(x)[maxtss.pos],
+    background.score = as.vector(background.rle)[maxtss.pos]
   )
-  maxtss <- IRanges::resize(maxtss, width = w, fix = "center")
+  maxtss <- IRanges::resize(maxtss, width = w, fix = "center") |> reduce()
+
 
   return(maxtss)
 
