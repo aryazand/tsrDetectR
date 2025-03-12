@@ -21,7 +21,7 @@ The `S4vectors` package contains helper functions for applying a sliding window 
 
 The `run*` functions are more efficient than applying the same functions by `aggregate`
 
-## TSRFinder 
+## TSRFinder
 
 -   TSRFinderM1 scores windows of size *w* by sum of 5' ends within window
 
