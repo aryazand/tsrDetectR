@@ -37,8 +37,7 @@ tsr_meantss <- function(x, w, background = 501, threshold = 0) {
     width = 20,
     score = as.vector(window.mean)[meantss.pos]
   )
-  meantss <- IRanges::resize(meantss, width = w, fix = "center") |>
-    IRanges::reduce()
+  meantss <- IRanges::resize(meantss, width = w, fix = "center")
 
   return(meantss)
 

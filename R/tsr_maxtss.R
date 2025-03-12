@@ -38,8 +38,7 @@ tsr_maxtss <- function(x, w, background = 501, threshold = 0) {
     score = as.vector(x)[maxtss.pos],
     background.score = as.vector(background.rle)[maxtss.pos]
   )
-  maxtss <- IRanges::resize(maxtss, width = w, fix = "center") |> reduce()
-
+  maxtss <- IRanges::resize(maxtss, width = w, fix = "center")
 
   return(maxtss)
 
