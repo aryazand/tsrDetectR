@@ -2,6 +2,8 @@
 
 export(runfun)
 export(strand_coverage)
+export(tsr_maxtss)
+export(tsr_meantss)
 import(BiocGenerics)
 import(GenomicRanges)
 import(checkmate)
