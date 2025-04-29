@@ -4,5 +4,5 @@
 .httr-oauth
 .DS_Store
 .quarto
-notebook/*
-!notbook/*.qmd
+notebook
+*.Rproj
