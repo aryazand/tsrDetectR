@@ -29,7 +29,7 @@ tsr_maxtss <- function(x, w, background = 501, threshold = 0) {
 
   # Create a IRanges of the maxtss TSRs
   maxtss.pos <- which(x == overlap.max &
-                      x > threshold.rle &
+                      x >= threshold.rle &
                       x > background.rle)
 
   maxtss <- IRanges::IRanges(
