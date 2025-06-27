@@ -11,8 +11,8 @@
 #' @examples
 #' x <- strand_coverage(cmv_proseq_sample)
 #' x <- x[[1]][[1]]
-#' tsr_maxtss(x = x, w = 21, background = 501, threshold = 10)
-tsr_maxtss <- function(x, w, background = 501, threshold = 0) {
+#' findtsr_maxtss(x = x, w = 21, background = 501, threshold = 10)
+findtsr_maxtss <- function(x, w, background = 501, threshold = 0) {
 
   # Calculate max for each window
   window.max <- S4Vectors::runq(x, k=w, i = w, endrule = "constant")

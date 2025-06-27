@@ -11,8 +11,8 @@
 #' @examples
 #' x <- strand_coverage(cmv_proseq_sample)
 #' x <- x[[1]][[1]]
-#' tsr_meantss(x = x, w = 21, background = 501, threshold = 10)
-tsr_meantss <- function(x, w, background = 501, threshold = 0) {
+#' findtsr_meantss(x = x, w = 21, background = 501, threshold = 10)
+findtsr_meantss <- function(x, w, background = 501, threshold = 0) {
 
   # Calculate max for each window
   window.mean <- S4Vectors::runmean(x, k=w, endrule = "constant")
