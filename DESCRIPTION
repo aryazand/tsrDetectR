@@ -22,6 +22,7 @@ Imports:
     BiocGenerics,
     checkmate,
     IRanges,
+    pracma,
     S4Vectors,
     zoo
 Suggests: 
