@@ -56,7 +56,7 @@ normalized_fiveprime_coverage <- function(gr) {
   GenomeInfoDb::seqinfo(fiveprime_cov.pos) <- gr.seqinfo
   GenomeInfoDb::seqinfo(fiveprime_cov.neg) <- gr.seqinfo
 
-  normalized_coverage <- list(normalized_cov.pos, normalized_cov.neg)
+  normalized_coverage <- list(`+` = IRanges::RleList(normalized_cov.pos), `-` = IRanges::RleList(normalized_cov.neg))
 
   return(normalized_coverage)
 
