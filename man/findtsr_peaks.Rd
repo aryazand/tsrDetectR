@@ -9,7 +9,8 @@ findtsr_peaks(
   bg_size = 101,
   peak_pat = "[+]{1,}([0]{1,}[+]{1,}){0,}[-]{1,}([0]{1,}[-]{1,}){0,}",
   height_above_bg = 1,
-  min_peak_distance = 1
+  min_peak_distance = 1,
+  min_gapwidth = 2
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ findtsr_peaks(
 \item{height_above_bg}{The minimum (absolute) height a peak has to have to be recognized as such. This is passed to pracma::findpeaks() function}
 
 \item{min_peak_distance}{the minimum distance (in indices) peaks have to have to be counted. This is passed to pracma::findpeaks() function}
+
+\item{min_gapwidth}{the distance between two peaks to merge them into a single peak}
 }
 \value{
 GRanges object
