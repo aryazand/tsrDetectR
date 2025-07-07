@@ -30,11 +30,11 @@ normalized_fiveprime_coverage <- function(gr) {
   stopifnot(!is.null(GenomeInfoDb::seqlengths(gr)))
   gr.seqinfo <-  GenomeInfoDb::seqinfo(gr)
 
-  # Get coverage from fragments in a strand specific manner
+  # Get total coverage in a strand specific manner
   cov.pos <- GenomicRanges::coverage(gr[strand(gr) == "+"])
   cov.neg <- GenomicRanges::coverage(gr[strand(gr) == "-"])
 
-  # Create GRange of 5' ends
+  # Get 5' ends of gr as a GRange
   gr.fiveprime <- GenomicRanges::GRanges(
     seqnames = GenomeInfoDb::seqnames(gr),
     ranges = IRanges::IRanges(
@@ -46,17 +46,21 @@ normalized_fiveprime_coverage <- function(gr) {
 
   GenomeInfoDb::seqinfo(gr.fiveprime) <- gr.seqinfo
 
-  # Get
+  # Calculate 5' prime coverage
   fiveprime_cov.pos <- GenomicRanges::coverage(gr.fiveprime[BiocGenerics::strand(gr.fiveprime) == "+"])
   fiveprime_cov.neg <- GenomicRanges::coverage(gr.fiveprime[BiocGenerics::strand(gr.fiveprime) == "-"])
 
-  normalized_cov.pos <- purrr::map2(fiveprime_cov.pos, cov.pos, ~(.x^2)/(.y+0.1))
-  normalized_cov.neg <- purrr::map2(fiveprime_cov.neg, cov.neg, ~(.x^2)/(.y+0.1))
+  # Normalize
+  normalized_cov.pos <- purrr::map2(fiveprime_cov.pos, cov.pos, ~(.x^2)/(.y+1))
+  normalized_cov.neg <- purrr::map2(fiveprime_cov.neg, cov.neg, ~(.x^2)/(.y+1))
 
   GenomeInfoDb::seqinfo(fiveprime_cov.pos) <- gr.seqinfo
   GenomeInfoDb::seqinfo(fiveprime_cov.neg) <- gr.seqinfo
 
-  normalized_coverage <- list(`+` = IRanges::RleList(normalized_cov.pos), `-` = IRanges::RleList(normalized_cov.neg))
+  normalized_coverage <- list(
+    `+` = IRanges::RleList(normalized_cov.pos),
+    `-` = IRanges::RleList(normalized_cov.neg)
+    )
 
   return(normalized_coverage)
 
