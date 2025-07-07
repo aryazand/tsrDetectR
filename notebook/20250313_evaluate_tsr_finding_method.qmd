@@ -1,0 +1,227 @@
+---
+title: "assess_quality_of_peaks"
+format: html
+editor: visual
+---
+
+Here i assess the how peaks appear using maxTSS or meanTSS functions
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+
+hpi12.5prime <- cmv_proseq_hff_12hpi |> resize(width = 1, fix = "start")
+hpi12.5primecov <- strand_coverage(hpi12.5prime)
+hpi12.5primecov.plus <- hpi12.5primecov[[1]][[1]]
+hpi12.5primecov.neg <- hpi12.5primecov[[2]][[1]]
+```
+
+## maxTSS
+
+```{r}
+# get maxtss
+maxtss.windows.plus <- tsr_maxtss(hpi12.5primecov.plus, w = 31, threshold = 50)
+maxtss.windows.neg <- tsr_maxtss(hpi12.5primecov.neg, w = 31, threshold = 50)
+
+
+# get values within each maxtss
+
+ranges_to_cov_values <- function(my_ranges, my_Rle, buffer) {
+  my_Rle <- as.vector(my_Rle)
+  
+  window.start <- start(my_ranges) - buffer
+  window.start[window.start < 1] <- 1
+  
+  window.end <- end(my_ranges) + buffer
+  window.end[window.end > 237683] <- 237683
+  
+  map2(window.start, window.end, ~my_Rle[seq(.x,.y)]) |> 
+    map(as_tibble) |>
+    map(mutate, pos = row_number() - (n() - 1)/2) |> 
+    bind_rows(.id = "window.id") 
+}
+
+buffer = 25
+
+maxtss.scores.plus <- ranges_to_cov_values(maxtss.windows.plus, 
+                                           hpi12.5primecov.plus,
+                                           buffer = buffer)
+
+maxtss.scores.neg <- 
+  ranges_to_cov_values(maxtss.windows.neg, 
+                       hpi12.5primecov.neg, 
+                       buffer = buffer) |>
+  group_by(window.id) |> 
+  mutate(value = rev(value))
+
+maxtss.scores <- 
+  bind_rows(maxtss.scores.plus, maxtss.scores.neg, .id = "strand") |>
+  group_by(strand, window.id) |> 
+  mutate(id = cur_group_id()) |>
+  ungroup()
+
+# plot
+
+ggplot(maxtss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr()
+
+```
+
+```{r}
+# plot as groups
+maxtss.scores <- maxtss.scores |> 
+  group_by(id) |> 
+  mutate(peak.group = max(value)) |> 
+  ungroup() |> 
+  mutate(peak.group = cut(peak.group, breaks = c(50,100,500,Inf)))
+
+
+ggplot(maxtss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr() +
+  facet_wrap(~peak.group, scales = "free")
+```
+
+Calculate center of mass for each TSR
+
+```{r}
+maxtss.scores <- maxtss.scores |> 
+  group_by(id) |>
+  mutate(com = sum(pos*value)/sum(value)) |> 
+  ungroup() |> 
+  mutate(com.group = cut(com, breaks = c(-Inf, -5, 5, Inf)))
+
+ggplot(maxtss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr() +
+  facet_wrap(~com.group, scales = "free")
+```
+
+
+What if we reduced
+```{r}
+# get maxtss
+maxtss.windows.plus <- tsr_maxtss(hpi12.5primecov.plus, w = 31) |>
+  IRanges::reduce()
+maxtss.windows.neg <- tsr_maxtss(hpi12.5primecov.neg, w = 31) |> 
+  IRanges::reduce()
+
+
+# get values within each maxtss
+maxtss.scores.plus <- ranges_to_cov_values(maxtss.windows.plus, 
+                                           hpi12.5primecov.plus,
+                                           buffer = buffer)
+maxtss.scores.neg <- 
+  ranges_to_cov_values(maxtss.windows.neg, 
+                       hpi12.5primecov.neg, 
+                       buffer = buffer) |>
+  group_by(window.id) |> 
+  mutate(value = rev(value))
+
+maxtss.scores <- 
+  bind_rows(maxtss.scores.plus, maxtss.scores.neg, .id = "strand") |>
+  group_by(strand, window.id) |> 
+  mutate(id = cur_group_id()) |>
+  ungroup()
+
+# plot
+
+ggplot(maxtss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr()
+```
+
+```{r}
+# plot as groups
+maxtss.scores <- maxtss.scores |> 
+  group_by(id) |> 
+  mutate(peak.group = max(value, na.rm = T)) |> 
+  ungroup() |> 
+  mutate(peak.group = cut(peak.group, breaks = c(0,100,500,Inf)))
+
+
+ggplot(maxtss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr() +
+  facet_wrap(~peak.group, scales = "free")
+```
+
+```{r}
+maxtss.scores <- maxtss.scores |> 
+  group_by(id) |>
+  mutate(com = sum(pos*value)/sum(value)) |> 
+  ungroup() |> 
+  mutate(com.group = cut(com, breaks = c(-Inf, -5, 5, Inf)))
+
+ggplot(maxtss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr() +
+  facet_wrap(~com.group, scales = "free")
+```
+
+
+## using meantss function
+```{r}
+# get meantss
+meantss.windows.plus <- tsr_meantss(hpi12.5primecov.plus, w = 11, threshold = 10) |> 
+   IRanges::reduce()
+meantss.windows.neg <- tsr_meantss(hpi12.5primecov.neg, w = 11, threshold = 10) |>
+   IRanges::reduce()
+
+
+# get values within each maxtss
+buffer = 25
+
+meantss.scores.plus <- 
+  ranges_to_cov_values(meantss.windows.plus, 
+                       hpi12.5primecov.plus,
+                      buffer = buffer)
+meantss.scores.neg <- 
+  ranges_to_cov_values(meantss.windows.neg, 
+                       hpi12.5primecov.neg, 
+                       buffer = buffer) |>
+  group_by(window.id) |> 
+  mutate(value = rev(value))
+
+meantss.scores <- 
+  bind_rows(meantss.scores.plus, meantss.scores.neg, .id = "strand") |>
+  group_by(strand, window.id) |> 
+  mutate(id = cur_group_id()) |>
+  ungroup()
+
+# plot
+
+ggplot(meantss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr()
+
+```
+
+```{r}
+# plot as groups
+meantss.scores <- meantss.scores |> 
+  group_by(id) |> 
+  mutate(peak.group = max(value, na.rm = T)) |> 
+  ungroup() |> 
+  mutate(peak.group = cut(peak.group, breaks = c(0,100,500,Inf)))
+
+
+ggplot(meantss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr() +
+  facet_wrap(~peak.group, scales = "free")
+```
+
+```{r}
+meantss.scores <- meantss.scores |> 
+  group_by(id) |>
+  mutate(com = sum(pos*value)/sum(value)) |> 
+  ungroup() |> 
+  mutate(com.group = cut(com, breaks = c(-Inf, -5, 5, Inf)))
+
+ggplot(meantss.scores) + 
+  geom_line(aes(pos, value, group = id), alpha = 0.2) + 
+  theme_pubr() +
+  facet_wrap(~com.group, scales = "free")
+```
