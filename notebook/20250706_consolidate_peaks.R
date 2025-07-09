@@ -1,7 +1,7 @@
 library(GenomicAlignments)
 library(GenomicRanges)
 library(tidyverse)
-bamfiles <- list.files("~/Documents/hff_tb40_timeseries/results/alignments/", pattern = "cmv_tb40e.bam$", full.names = T)
+bamfiles <- list.files("//wsl.localhost/Ubuntu/home/arya/Projects/hff_tb40e_timeseries/results/alignments/", pattern = "cmv_tb40e.bam$", full.names = T)
 bam_data <- purrr::map(bamfiles, readGAlignmentPairs, strandMode = 2, param=ScanBamParam(what="mapq"))
 sample_names <- factor(c("04_hpi", "12_hpi", "24_hpi", "48_hpi", "72_hpi", "mock"))
 
