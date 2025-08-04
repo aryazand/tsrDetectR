@@ -1,0 +1,29 @@
+---
+title: "Finding and Comparing TSRs from Precision Run-On Sequencing Dataset"
+author: Arya Zandvakili
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(tsrDetectR)
+```
+
+Here we are creating a vignette demonstrating how to call and compare Transcription Start Regions (TSRs) between across samples in an experiment. There are 4 steps to do this:
+
+1.  Load samples as BAM files as 5' coverage
+
+2.  Normalize 5' coverage to make samples comparable [*Note:* how to normalize files depends on biological question]
+
+3.  Identify a set of TSRs
+
+    a.  Use some *Peak Calling Algorithm* to call TSRs in each sample individually [Note: multiple peak calling algorithms exist, these will be discussed in this document]
+    b.  Filter low quality peaks
+    c.  Consolidate peaks across samples
+
+4.  Compare the set of TSRs across samples
