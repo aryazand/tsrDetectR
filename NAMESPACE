@@ -3,7 +3,7 @@
 export(findtsr_maxtss)
 export(findtsr_meantss)
 export(findtsr_peaks)
-export(normalized_fiveprime_coverage)
+export(normalize_coverage)
 export(runfun)
 export(strand_coverage)
 import(BiocGenerics)

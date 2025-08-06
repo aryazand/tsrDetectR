@@ -21,10 +21,8 @@ LazyData: true
 Imports: 
     BiocGenerics,
     checkmate,
-    GenomeInfoDb,
     IRanges,
     pracma,
-    purrr,
     S4Vectors,
     zoo
 Suggests: 
