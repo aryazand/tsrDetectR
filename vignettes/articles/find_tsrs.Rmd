@@ -10,11 +10,9 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(tsrDetectR)
-```
+## Introduction
 
-Here we are creating a vignette demonstrating how to call and compare Transcription Start Regions (TSRs) between across samples in an experiment. There are 4 steps to do this:
+This document is meant to demonstrate how to call and compare Transcription Start Regions (TSRs) between across PRO-seq samples using the `TSRDetectR` package. There are 4 steps to do this:
 
 1.  Load samples as BAM files as 5' coverage
 
@@ -26,4 +24,188 @@ Here we are creating a vignette demonstrating how to call and compare Transcript
     b.  Filter low quality peaks
     c.  Consolidate peaks across samples
 
-4.  Compare the set of TSRs across samples
+4.  Compare the set of TSRs across samples - can compare both TSR [Note: a variety of properties of the TSRs can compared, including height, area, and position of maximal point]
+
+## 1. Load Data
+
+First we will load an example BAM files from a PRO-seq experiment. This dataset represents PROseq results from the CMV genome at different timepoints after infection of HFF culture with CMV. Time points are at 4 hrs, 12 hrs, 24 hrs, and 48 hrs. The example dataset represents a 1% random sampling of the original aligned reads from the experiment.
+
+```{r setup}
+library(GenomicAlignments)
+library(GenomicRanges)
+library(tsrDetectR)
+library(tidyverse)
+library(here)
+
+# Load Bam Files
+bam_files <- list.files(here("inst/extdata"), pattern = "cmv_tb40e_sampled.bam$", full.names = T)
+bam_data <- purrr::map(bam_files, readGAlignmentPairs, strandMode = 2, param=ScanBamParam(what="mapq"))
+
+# Convert to GRanges Objects and retain mapq scores
+gr <- purrr::map(bam_data, bam_to_grange, keep = "mapq")
+gr <- GRangesList(gr)
+sample_names <- basename(bam_files) |>
+  sub("_flavo_pro-seq_cmv_tb40e_sampled.bam", "", x = _) |>
+  factor()
+names(gr) <- sample_names
+
+# remove reads without a defined strand
+gr <- gr[strand(gr) != "*"]
+```
+
+## 2. Get 5' prime ends coverage
+
+```{r}
+
+# Get just 5' ends
+gr.fiveprime <- resize(gr, width = 1, fix = "start")
+
+# get 5' end coverage by strand
+cov.fiveprime <- map(gr.fiveprime, strand_coverage)
+
+# convert to table
+df_fiveprime_coverage <- cov.fiveprime |>
+  map_depth(.depth = 2, as.list) |>
+  as_tibble() |>
+  mutate(strand = c("+", "-")) |> 
+  pivot_longer(cols = -strand, names_to = "sample_name", values_to = "data") |>
+  unnest_longer(data, indices_to = "chr") |>
+  mutate(chr = factor(chr)) |>
+  mutate(sample_name = factor(sample_name, levels = levels(sample_names))) |>
+  pivot_wider(id_cols = c(sample_name, chr), 
+              names_from = strand,
+              values_from = data)
+```
+
+## 3. Normalize signal
+
+There are many ways to normalize the signal. here we just apply a simple method by normalize to the total number of reads that aligned to the viral genome.
+
+```{r}
+df_fiveprime_coverage <- df_fiveprime_coverage |>
+  rowwise() |> 
+  mutate(normalized_cov = list(normalize_coverage(`+`, `-`))) |> 
+  mutate(`+` = list(normalized_cov[[1]]),
+         `-` = list(normalized_cov[[2]])) |> 
+  select(-normalized_cov)
+```
+
+## 4. Peak calling to find TSRs
+
+There are multiple different peak calling methods. Here we do the following:
+
+1.  Call TSRs by applying the `findpeaks` function in `pracma` package to 5' coverage across the genome
+2.  Filter out peaks that have low quality mapping statistics
+
+```{r}
+df_peaks <- df_fiveprime_coverage |>
+  pivot_longer(-c(sample_name, chr), names_to = "strand", values_to = "data") |> 
+  rowwise() |>
+  mutate(
+    peaks = list(findtsr_peaks(data, bg_size = 51, height_above_bg =  0.001))
+  )|> 
+  mutate(
+    peaks = list(GRanges(seqnames = chr, ranges = peaks, strand = strand))
+  )
+
+# Remove peaks with poor quality
+df_peaks <- df_peaks |> 
+  rowwise() |>
+  mutate(
+    peaks = list(summarizeMetadata(gr.fiveprime[[sample_name]], peaks, metadata = "mapq", func = mean))
+    ) |> 
+  mutate(
+    peaks_filtered = list(peaks[mcols(peaks)$mapq > 30])
+    )
+
+# Consolidate TSRs
+peaks_combined <- df_peaks$peaks |>
+  GRangesList() |>
+  unlist() |>
+  GenomicRanges::reduce(min.gapwidth = 5)
+
+# All TSRs should be a minimum of width
+min_width = 5
+peaks_combined[width(peaks_combined) < min_width] <- resize(peaks_combined[width(peaks_combined) < min_width], fix = "center", width = min_width)
+```
+
+## 5. Compare TSRs between Samples
+
+```{r}
+# Apply Views
+df <- df_fiveprime_coverage |>
+  pivot_longer(cols = c("+", "-"), names_to = "strand", values_to = "coverage") |>
+  rowwise() |>
+  mutate(peak_views = list(
+    Views(coverage, 
+          ranges(peaks_combined[strand(peaks_combined) == as.character(strand) &
+                               seqnames(peaks_combined) == as.character(chr)]))
+    )
+  )
+
+# Get TSR max and max position
+df <- df |> 
+  rowwise() |> 
+  mutate(tsr_max = list(max(peak_views))) |> 
+  mutate(tsr_max_pos = list(which.max(peak_views) - start(peak_views) + 1)) |> 
+  ungroup()
+
+# Get TSR sum
+df <- df |> 
+  rowwise() |> 
+  mutate(tsr_sum = list(sum(peak_views))) |> 
+  ungroup()
+
+# Unnest Data
+df2 <- df |> 
+  rowwise() |>
+  mutate(start = list(start(peak_views)),
+         width = list(width(peak_views))) |> 
+  ungroup() |>
+  select(-coverage, -peak_views) |> 
+  unnest(c(start, width, tsr_max, tsr_max_pos, tsr_sum)) 
+```
+
+### Cluster analysis on max value for each TSR
+
+```{r}
+# Normalize Data
+
+normalize_values <- function(x) {
+  
+  (x - min(x))/(max(x) - min(x))
+  
+}
+
+df2 <- df2 |>
+  group_by(chr, strand, start) |> 
+  mutate(tsr_max = normalize_values(tsr_max)) |> 
+  mutate(tsr_sum = normalize_values(tsr_sum)) |> 
+  ungroup()
+
+# Pivot wider
+df2 <- df2 |> 
+  pivot_wider(id_cols = c(chr, strand, start),
+              names_from = sample_name, 
+              values_from = c(tsr_max, tsr_max_pos, tsr_sum),
+              names_sep = ".")
+
+# Cluster Analysis
+matrix.max <- df2 |> 
+  select(starts_with("tsr_max.")) |> 
+  select(-tsr_max.mock) |> 
+  as.matrix()
+
+colnames(matrix.max) <- sub("tsr_max.", "", colnames(matrix.max))
+
+ggalign::ggheatmap(matrix.max) + 
+  scale_fill_gradientn(
+    colours = hcl.colors(11, "Sunset"),
+    name = "Transcriptional Activity\n (log(normalized 5' ends))",
+    guide = guide_colorbar(position = "bottom",
+    theme = theme(legend.direction = "horizontal",
+                  legend.title.position = "top",
+                  legend.text.position = "bottom"))) +
+  ggalign::anno_left() +
+  ggalign::align_dendro(k = 6, method = "ward.D") 
+```
