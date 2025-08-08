@@ -2,12 +2,12 @@
 % Please edit documentation in R/bam_to_grange.R
 \name{bam_to_grange}
 \alias{bam_to_grange}
-\title{Title}
+\title{Convert a GAlignments object to GRanges object}
 \usage{
-bam_to_grange(x, keep)
+bam_to_grange(x, keep = NULL)
 }
 \arguments{
-\item{x}{GAlignmentPairs object}
+\item{x}{GAlignments or GAlignmentPairs object}
 
 \item{keep}{which metadata to keep}
 }
@@ -15,9 +15,17 @@ bam_to_grange(x, keep)
 GenomicRanges object
 }
 \description{
-Title
+Convert a GAlignments object to GRanges object
 }
 \examples{
-x <- system.file("inst", "extdata", "04_hpi_flavo_pro-seq_cmv_tb40e_sampled.bam")
-bam_to_grange(x, keep = "mapq")
+reads <- GenomicAlignments::GAlignments(
+  names = c("a","b","c","d","e","f","g"),
+  seqnames = Rle(c(rep(c("chr1", "chr2"), 3), "chr1")),
+  pos = c(1400, 2700, 3400, 7100, 4000, 3100, 5200),
+  cigar = c("500M", "100M", "300M", "500M", "300M",
+            "50M200N50M", "50M150N50M"),
+  strand = strand(rep("+", 7)),
+  mapq = sample(seq(42), 7))
+
+bam_to_grange(reads, keep = "mapq")
 }
