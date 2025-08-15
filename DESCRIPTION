@@ -21,10 +21,17 @@ LazyData: true
 Imports: 
     BiocGenerics,
     checkmate,
+    dplyr,
+    GenomeInfoDb,
     GenomicAlignments,
     IRanges,
+    matrixStats,
     pracma,
+    purrr,
     S4Vectors,
+    tibble,
+    tidyr,
+    tidyselect,
     zoo
 Suggests: 
     testthat (>= 3.0.0)
