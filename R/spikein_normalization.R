@@ -204,7 +204,7 @@ avg_counts_in_genomicTiles <- function(tileCounts, average.method = "median") {
   return(tileCounts)
 }
 
-regression_counts_in_genomicTiles <- function(tileCounts, average_col, average.min = 1) {
+regression_counts_in_genomicTiles <- function(tileCounts, average_col, average.min = 0) {
   
   checkmate::assert(
     checkmate::checkClass(tileCounts, "data.frame"),
@@ -216,8 +216,14 @@ regression_counts_in_genomicTiles <- function(tileCounts, average_col, average.m
 
   # Apply Regression Function
   reg_models <- tileCounts[tileCounts[[average_col]] > average.min, ] |> 
-    dplyr::summarise(dplyr::across(!dplyr::matches(average_col), ~list(lm(average ~ .x)))) |> 
-    tidyr::pivot_longer(cols = tidyselect::everything(), names_to = "sample", values_to = "model")
+    tidyr::pivot_longer(cols = !dplyr::matches(average_col), names_to = "sample_name", values_to = "value")
+  
+  reg_models <- reg_models |> 
+    split(reg_models$sample_name) |> 
+    lapply(function(.x) stats::lm(average ~ value, data = .x)) |> 
+    lapply(list) |> 
+    tibble::as_tibble() |> 
+    tidyr::pivot_longer(cols = tidyselect::everything(), names_to = "sample_name", values_to = "model")
 
   return(reg_models)
 }
