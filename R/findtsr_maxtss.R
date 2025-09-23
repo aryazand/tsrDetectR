@@ -21,7 +21,7 @@ findtsr_maxtss <- function(x, w, background = 501, threshold = 0) {
   threshold.rle = S4Vectors::Rle(values = threshold, lengths = length(x))
 
   # Calculate background value
-  background.rle = S4Vectors::Rle(stats::runmed(x, k = background, endrule = "constant"))
+  background.rle = S4Vectors::Rle(stats::runmed(as.vector(x), k = background, endrule = "constant"))
 
   # Calculate max including overlapping window
   w2 = (w-1)*2 + 1
