@@ -20,7 +20,7 @@ findtsr_peaks <- function(x, bg_size = 101,
 
   # Calculate background value at each position of the genome
   # background value is subtracted
-  bg.rle = S4Vectors::Rle(stats::runmed(x, k = bg_size, endrule = "median"))
+  bg.rle = S4Vectors::Rle(stats::runmed(as.vector(x), k = bg_size, endrule = "median"))
   x <- x - bg.rle
   x[x < 0] <- 0
 
