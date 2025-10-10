@@ -4,7 +4,7 @@
 \alias{findtsr_maxtss}
 \title{Identify fixed windows that are transcription-start regions (TSRs) based on maximum value within each windows}
 \usage{
-findtsr_maxtss(x, w, background = 501, threshold = 0)
+findtsr_maxtss(x, w, background = 501, threshold = 0, rel_threshold = 0)
 }
 \arguments{
 \item{x}{an Rle object}
@@ -13,7 +13,9 @@ findtsr_maxtss(x, w, background = 501, threshold = 0)
 
 \item{background}{size of window to calculate background value. This should be significantly larger than w. To call a window as a TSR, the maximum value within a window must be greater than median of background window.}
 
-\item{threshold}{the minimum value for maximum value within a window to call a TSR}
+\item{threshold}{windows are scored by the maximum value within the window. The score must be greater than threshold value for a window to be considered a TSR}
+
+\item{rel_threshold}{windows are scored by the maximum value within the window. The percentile rank of the relative (relative to all values within the Rle object) must be greater than rel_threshold for the window to be considered a TSR.}
 }
 \value{
 an IRanges object of all TSR windows

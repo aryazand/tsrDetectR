@@ -3,7 +3,8 @@
 #' @param x an Rle object
 #' @param w width of window
 #' @param background size of window to calculate background value. This should be significantly larger than w. To call a window as a TSR, the maximum value within a window must be greater than median of background window.
-#' @param threshold the minimum value for maximum value within a window to call a TSR
+#' @param threshold windows are scored by the maximum value within the window. The score must be greater than threshold value for a window to be considered a TSR
+#' @param rel_threshold windows are scored by the maximum value within the window. The percentile rank of the relative (relative to all values within the Rle object) must be greater than rel_threshold for the window to be considered a TSR.
 #'
 #' @return an IRanges object of all TSR windows
 #' @export
@@ -21,7 +22,7 @@ findtsr_maxtss <- function(x, w, background = 501, threshold = 0, rel_threshold 
   threshold.rle = S4Vectors::Rle(values = threshold, lengths = length(x))
 
   # Calculate relative threshold
-  rel_x = x/sum(x)
+  rel_x = S4Vectors::Rle((dplyr::cume_dist(as.vector(x))))
   rel_threshold.rle = S4Vectors::Rle(values = rel_threshold, lengths = length(x))
 
   # Calculate background value
@@ -35,7 +36,7 @@ findtsr_maxtss <- function(x, w, background = 501, threshold = 0, rel_threshold 
   maxtss.pos <- which(x == overlap.max &
                       x >= threshold.rle &
                       x > background.rle &
-                      rel_x >= rel_threshold.x)
+                      rel_x >= rel_threshold.rle)
 
   maxtss <- IRanges::IRanges(
     start = maxtss.pos,
