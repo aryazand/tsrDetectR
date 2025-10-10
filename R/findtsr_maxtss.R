@@ -18,12 +18,8 @@ findtsr_maxtss <- function(x, w, background = 501, threshold = 0, rel_threshold 
   # Calculate max for each window
   window.max <- S4Vectors::runq(x, k=w, i = w, endrule = "constant")
 
-  # Calculate threshold value
-  threshold.rle = S4Vectors::Rle(values = threshold, lengths = length(x))
-
   # Calculate relative threshold
   rel_x = S4Vectors::Rle((dplyr::cume_dist(as.vector(x))))
-  rel_threshold.rle = S4Vectors::Rle(values = rel_threshold, lengths = length(x))
 
   # Calculate background value
   background.rle = S4Vectors::Rle(stats::runmed(as.vector(x), k = background, endrule = "constant"))
@@ -34,9 +30,9 @@ findtsr_maxtss <- function(x, w, background = 501, threshold = 0, rel_threshold 
 
   # Create a IRanges of the maxtss TSRs
   maxtss.pos <- which(x == overlap.max &
-                      x >= threshold.rle &
                       x > background.rle &
-                      rel_x >= rel_threshold.rle)
+                      x >= threshold &
+                      rel_x >= rel_threshold)
 
   maxtss <- IRanges::IRanges(
     start = maxtss.pos,
